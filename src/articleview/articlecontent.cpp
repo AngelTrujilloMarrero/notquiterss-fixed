@@ -18,6 +18,7 @@
 * ============================================================ */
 #include "articlecontent.h"
 
+#include "common/common.h"
 #include <libxml/HTMLparser.h>
 #include <QRegularExpression>
 #include <QCoreApplication>
@@ -73,7 +74,9 @@ struct Writer {
     for (; node; node = node->next) {
       if (++nodes > 50000) break;
       if (node->type == XML_TEXT_NODE || node->type == XML_CDATA_SECTION_NODE) {
-        out += text(node->content).toHtmlEscaped();
+        // Strip variation selectors etc. that crash Qt font shaping
+        // (FcCharSetHasChar segfault, e.g. ℹ️ U+2139 U+FE0F).
+        out += Common::sanitizeForDisplay(text(node->content)).toHtmlEscaped();
         continue;
       }
       if (node->type != XML_ELEMENT_NODE) continue;

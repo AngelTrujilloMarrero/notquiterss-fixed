@@ -18,6 +18,7 @@
 * ============================================================ */
 #include <QTimeZone>
 #include "newsmodel.h"
+#include "common/common.h"
 
 #include "mainapplication.h"
 
@@ -165,8 +166,10 @@ QVariant NewsModel::data(const QModelIndex &index, int role) const
       linkStr = linkStr.remove("https://");
       return linkStr;
     } else if (QSqlTableModel::fieldIndex("title") == index.column()) {
-      if (index.data(Qt::EditRole).toString().isEmpty())
+      QString title = Common::sanitizeForDisplay(index.data(Qt::EditRole).toString());
+      if (title.isEmpty())
         return tr("(no title)");
+      return title;
     }
   } else if (role == Qt::TextAlignmentRole) {
     int feedId = QSqlTableModel::index(index.row(), fieldIndex("feedId"))
@@ -227,7 +230,15 @@ QVariant NewsModel::data(const QModelIndex &index, int role) const
 
     return QColor(textColor_);
   }
-  return QSqlTableModel::data(index, role);
+  QVariant result = QSqlTableModel::data(index, role);
+  if (role == Qt::DisplayRole && result.type() == QVariant::String) {
+    const QString field = record().fieldName(index.column());
+    if (field == QLatin1String("title") || field == QLatin1String("author_name") ||
+        field == QLatin1String("author_email") || field == QLatin1String("category")) {
+      return Common::sanitizeForDisplay(result.toString());
+    }
+  }
+  return result;
 }
 
 /*virtual*/ QVariant NewsModel::headerData(int section,
@@ -294,7 +305,14 @@ QVariant NewsModel::data(const QModelIndex &index, int role) const
 // ----------------------------------------------------------------------------
 QVariant NewsModel::dataField(int row, const QString &fieldName) const
 {
-  return index(row, fieldIndex(fieldName)).data(Qt::EditRole);
+  QVariant v = index(row, fieldIndex(fieldName)).data(Qt::EditRole);
+  if (v.type() == QVariant::String &&
+      (fieldName == QLatin1String("title") || fieldName == QLatin1String("author_name") ||
+       fieldName == QLatin1String("author_email") || fieldName == QLatin1String("category") ||
+       fieldName == QLatin1String("description") || fieldName == QLatin1String("content"))) {
+    return Common::sanitizeForDisplay(v.toString());
+  }
+  return v;
 }
 
 void NewsModel::setFilter(const QString &filter)
