@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<opml version="1.0">
+  <head>
+    <title>QuiteRSS export</title>
+  </head>
+  <body>
+    <outline text="QuiteRSS" title="QuiteRSS" type="rss" xmlUrl="https://quiterss.org/en/rss.xml" htmlUrl="https://quiterss.org" />
+    <outline text="ADSLZone: noticias y tutoriales sobre tecnología, internet y operadores de fibra y móvil" title="ADSLZone: noticias y tutoriales sobre tecnología, internet y operadores de fibra y móvil" type="rss" xmlUrl="http://feeds.feedburner.com/adslzone/adslzone" htmlUrl="https://www.adslzone.net/" />
+    <outline text="Xataka" title="Xataka" type="rss" xmlUrl="http://feeds.weblogssl.com/xataka2" htmlUrl="https://www.xataka.com" />
+    <outline text="Genbeta" title="Genbeta" type="rss" xmlUrl="http://www.genbeta.com/feedburner.xml" htmlUrl="https://www.genbeta.com" />
+    <outline text="eldia.es - General" title="eldia.es - General" type="rss" xmlUrl="http://eldia.es/rss/" htmlUrl="https://www.eldia.es/" />
+    <outline text="MuyLinux" title="MuyLinux" type="rss" xmlUrl="https://www.muylinux.com/feed/" htmlUrl="https://www.muylinux.com" />
+    <outline text="BandaAncha:️ Noticias y guias sobre fibra y móvil" title="BandaAncha:️ Noticias y guias sobre fibra y móvil" type="rss" xmlUrl="http://bandaancha.eu/articulos.rss" htmlUrl="https://bandaancha.eu/articulos" />
+    <outline text="elespanol - Home" title="elespanol - Home" type="rss" xmlUrl="http://elespanol.com/rss/" htmlUrl="https://www.elespanol.com/" />
+  </body>
+</opml>

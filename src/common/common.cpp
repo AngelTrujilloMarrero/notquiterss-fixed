@@ -84,6 +84,40 @@ QString Common::filterCharsFromFilename(const QString &name)
   return value;
 }
 
+QString Common::sanitizeForDisplay(const QString &text)
+{
+  if (text.isEmpty())
+    return text;
+  // Workaround for Qt/fontconfig crash (FcCharSetHasChar segfault) when
+  // shaping variation selectors in QTreeView/QTextLayout, e.g. feed name
+  // "BandaAncha:\uFE0F ..." (U+FE0F). Strip variation selectors and
+  // other default-ignorable format chars that have no visible glyph here.
+  QString out;
+  out.reserve(text.size());
+  for (int i = 0; i < text.size(); ++i) {
+    const uint u = text.at(i).unicode();
+    // Variation Selectors U+FE00..U+FE0F
+    if (u >= 0xFE00 && u <= 0xFE0F)
+      continue;
+    // Variation Selectors Supplement U+E0100..U+E01EF (surrogate pairs)
+    if (QChar::isHighSurrogate(text.at(i).unicode()) && i + 1 < text.size() &&
+        QChar::isLowSurrogate(text.at(i + 1).unicode())) {
+      const uint cp = QChar::surrogateToUcs4(text.at(i).unicode(),
+                                             text.at(i + 1).unicode());
+      if (cp >= 0xE0100 && cp <= 0xE01EF) {
+        ++i;
+        continue;
+      }
+    }
+    // Zero-width joiner/non-joiner, word joiner, zero-width space: keep ZWJ
+    // for emoji sequences, drop others that only affect shaping.
+    if (u == 0x200B || u == 0x2060 || u == 0xFEFF)
+      continue;
+    out.append(text.at(i));
+  }
+  return out;
+}
+
 QString Common::ensureUniqueFilename(const QString &name, const QString &appendFormat)
 {
   if (!QFile::exists(name)) {

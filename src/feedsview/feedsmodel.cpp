@@ -20,6 +20,7 @@
 #include "feedsmodel.h"
 #include "feedhealth.h"
 #include "feedsproxymodel.h"
+#include "common/common.h"
 
 #include <QtCore>
 #include <QPainter>
@@ -303,7 +304,15 @@ QVariant FeedsModel::data(const QModelIndex &index, int role) const
     return QVariant();
 
   QSqlRecord record = static_cast<UserData*>(index.internalPointer())->record;
-  return record.value(indexColumnOf(index.column()));
+  QVariant v = record.value(indexColumnOf(index.column()));
+  if ((role == Qt::DisplayRole || role == Qt::EditRole) && v.type() == QVariant::String) {
+    const QString name = record.fieldName(indexColumnOf(index.column()));
+    if (name == QLatin1String("text") || name == QLatin1String("title") ||
+        name == QLatin1String("description")) {
+      return Common::sanitizeForDisplay(v.toString());
+    }
+  }
+  return v;
 }
 
 bool FeedsModel::setData(const QModelIndex &index, const QVariant &value, int)

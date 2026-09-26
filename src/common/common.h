@@ -40,6 +40,7 @@ namespace Common
   bool removePath(const QString &path);
   bool matchDomain(const QString &pattern, const QString &domain);
   QString filterCharsFromFilename(const QString &name);
+  QString sanitizeForDisplay(const QString &text);
   QString ensureUniqueFilename(const QString &name, const QString &appendFormat = QString("(%1)"));
 
   QString readAllFileContents(const QString &filename);
