@@ -35,3 +35,58 @@ sudo make install
 - El feed `quiterss.org/en/rss.xml` está muerto (tag mismatch), bórralo.
 
 O importa `quiterss-feeds.opml` desde la GUI.
+
+## 5. Si la app se cierra sola al abrir una noticia (SIGSEGV)
+
+El crash típico no era del contenido del feed, sino del **caché de
+fontconfig**:
+
+```
+# síntoma: todo responde la misma fuente corrupta
+fc-match "a"          → OpenDyslexic-Bold.woff: "a"
+fc-match "Inter"      → OpenDyslexic-Bold.woff: "Inter"
+fc-match "sans-serif" → OpenDyslexic-Bold.woff: "Arimo"
+```
+
+El paquete `fonts-opendyslexic` instala copias WOFF en
+`/usr/share/fonts/woff/`, y fontconfig 2.15 las devuelve como mejor
+conicidencia para *cualquier* consulta, con nombres de familia
+inventados. Qt 5.15 recibe un `FcCharSet` basura y hace **SIGSEGV en
+`FcCharSetHasChar()`** al dar forma al texto:
+
+```
+#0  FcCharSetHasChar (fontconfig)
+#3  QFontEngineMulti::stringToCMap
+#5  QTextEngine::shapeText
+#7  QTextDocument::setHtml
+```
+
+### Arreglo
+
+```bash
+# 1. reconstruir el caché roto
+sudo fc-cache -f -r
+
+# 2. que fontconfig ignore los WOFF (el paquete trae los .otf correctos)
+sudo cp local.conf /etc/fonts/local.conf   # ver este repo
+sudo fc-cache -f -r
+```
+
+Verificado: `fc-match "Inter"` → `Inter-Regular.ttf`,
+`fc-match "🧳"` → `NotoSans-Regular.ttf`.
+
+### Protección en la app
+
+`Common::sanitizeForDisplay()` (`src/common/common.cpp`) elimina del
+texto mostrado los caracteres sin cobertura de fuente, así que aunque
+fontconfig vuelva a fallar no forma shaping roto:
+
+- todo código punto no-BMP (emojis y símbolos astrales),
+- categorías `Cf` (formato: ZWJ, marcas bidi, BOM), `Cs` (sustitutos),
+  `Co` (uso privado) y `Cn` (sin asignar),
+- seletores de variación U+FE00..U+FE0F.
+
+Se aplica en `feedsmodel.cpp`, `newsmodel.cpp`, `articlecontent.cpp`,
+`notificationsnewsitem.cpp` y `notificationsfeeditem.cpp`.
+Se conservan acentos, eñes, signos de puntuación y símbolos comunes
+(`€`, `«»`, `—`, `•`, `…`).
