@@ -120,7 +120,7 @@ struct Writer {
         if (src.isEmpty()) src = attr(node, "data-src").trimmed();
         const QUrl url = base.resolved(QUrl(src));
         if (!imagesEnabled || src.isEmpty() || !(ArticleContent::isRemoteImage(url) || dataImage(url))) {
-          out += attr(node, "alt").toHtmlEscaped();
+          out += Common::sanitizeForDisplay(attr(node, "alt")).toHtmlEscaped();
           continue;
         }
         attributes += attribute("src", url.toString());
@@ -128,7 +128,12 @@ struct Writer {
         images->insert(url);
       }
       for (const char *key : {"title", "alt", "dir", "align", "width", "height", "colspan", "rowspan", "border", "cellpadding", "cellspacing"}) {
-        const QString value = attr(node, key);
+        QString value = attr(node, key);
+        // title/alt become visible text (tooltip / fallback) shaped by Qt.
+        if (value.isEmpty()) continue;
+        if (QString::fromLatin1(key) == QLatin1String("title") ||
+            QString::fromLatin1(key) == QLatin1String("alt"))
+          value = Common::sanitizeForDisplay(value);
         const QString name = QString::fromLatin1(key);
         if (tag == "img" && (name == "width" || name == "height")) {
           bool valid = false;
