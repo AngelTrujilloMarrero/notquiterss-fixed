@@ -17,6 +17,7 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * ============================================================ */
 #include "notificationsfeeditem.h"
+#include "common/common.h"
 
 FeedItem::FeedItem(int width, QWidget * parent)
   : QWidget(parent)
@@ -52,9 +53,10 @@ void FeedItem::setIcon(const QPixmap &icon)
 
 void FeedItem::setTitle(const QString &text, int cntNews)
 {
+  const QString safe = Common::sanitizeForDisplay(text);
   int wight = titleLabel_->fontMetrics().horizontalAdvance(QString(" (%1)").arg(cntNews));
   QString titleStr = titleLabel_->fontMetrics().elidedText(
-        text, Qt::ElideRight, titleLabel_->sizeHint().width() - wight);
+        safe, Qt::ElideRight, titleLabel_->sizeHint().width() - wight);
   titleLabel_->setText(QString("%1 (%2)").arg(titleStr).arg(cntNews));
 }
 

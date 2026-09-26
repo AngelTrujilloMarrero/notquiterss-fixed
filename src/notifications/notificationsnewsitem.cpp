@@ -17,6 +17,7 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * ============================================================ */
 #include "notificationsnewsitem.h"
+#include "common/common.h"
 
 NewsItem::NewsItem(int idFeed, int idNews, int width, QWidget * parent)
   : QWidget(parent)
@@ -72,10 +73,11 @@ NewsItem::~NewsItem()
 
 void NewsItem::setText(const QString &text)
 {
+  const QString safe = Common::sanitizeForDisplay(text);
   QString titleStr = textLabel_->fontMetrics().elidedText(
-        text, Qt::ElideRight, textLabel_->sizeHint().width());
+        safe, Qt::ElideRight, textLabel_->sizeHint().width());
   textLabel_->setText(titleStr);
-  textLabel_->setToolTip(text);
+  textLabel_->setToolTip(safe);
 }
 
 void NewsItem::setFontText(const QFont & font)

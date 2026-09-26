@@ -88,32 +88,35 @@ QString Common::sanitizeForDisplay(const QString &text)
 {
   if (text.isEmpty())
     return text;
-  // Workaround for Qt/fontconfig crash (FcCharSetHasChar segfault) when
-  // shaping variation selectors in QTreeView/QTextLayout, e.g. feed name
-  // "BandaAncha:\uFE0F ..." (U+FE0F). Strip variation selectors and
-  // other default-ignorable format chars that have no visible glyph here.
+  // Workaround for Qt/fontconfig crash (FcCharSetHasChar segfault via
+  // QFontEngineMulti::stringToCMap, seen with Qt 5.15 + fontconfig 2.15)
+  // when shaping characters without real-font coverage (e.g. emoji
+  // resolved to a bogus fallback) or variation selectors, e.g. feed
+  // "BandaAncha:\uFE0F ..." or article with "\u2139\uFE0F" / "\U0001F9F3".
+  // Strip Unicode format chars (Cf), variation selectors and every
+  // non-BMP code point. Accents and common punctuation are preserved.
   QString out;
   out.reserve(text.size());
   for (int i = 0; i < text.size(); ++i) {
-    const uint u = text.at(i).unicode();
-    // Variation Selectors U+FE00..U+FE0F
+    const QChar c = text.at(i);
+    if (c.isHighSurrogate() && i + 1 < text.size() &&
+        text.at(i + 1).isLowSurrogate()) {
+      // Non-BMP (emoji, symbols, VS supplement E0100-E01EF): drop pair.
+      ++i;
+      continue;
+    }
+    // Drop format, surrogate, private-use and unassigned chars: no font
+    // covers them and they hit the broken fallback path. This includes
+    // ZWJ/ZWNJ, bidi marks, word joiner, zero-width space and BOM.
+    const QChar::Category cat = c.category();
+    if (cat == QChar::Other_Format || cat == QChar::Other_Surrogate ||
+        cat == QChar::Other_PrivateUse || cat == QChar::Other_NotAssigned)
+      continue;
+    const uint u = c.unicode();
+    // Variation Selectors U+FE00..U+FE0F (category Mn, not Cf).
     if (u >= 0xFE00 && u <= 0xFE0F)
       continue;
-    // Variation Selectors Supplement U+E0100..U+E01EF (surrogate pairs)
-    if (QChar::isHighSurrogate(text.at(i).unicode()) && i + 1 < text.size() &&
-        QChar::isLowSurrogate(text.at(i + 1).unicode())) {
-      const uint cp = QChar::surrogateToUcs4(text.at(i).unicode(),
-                                             text.at(i + 1).unicode());
-      if (cp >= 0xE0100 && cp <= 0xE01EF) {
-        ++i;
-        continue;
-      }
-    }
-    // Zero-width joiner/non-joiner, word joiner, zero-width space: keep ZWJ
-    // for emoji sequences, drop others that only affect shaping.
-    if (u == 0x200B || u == 0x2060 || u == 0xFEFF)
-      continue;
-    out.append(text.at(i));
+    out.append(c);
   }
   return out;
 }
