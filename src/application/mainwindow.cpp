@@ -334,6 +334,12 @@ void MainWindow::slotPlaceToTray()
 
   saveSettings();
 
+  // The DB lives in RAM when storeDBMemory is on: going to tray is a
+  // "soft close" after which the user may log out/kill. Persist promptly
+  // instead of waiting for the periodic timer or a clean quit.
+  if (mainApp->storeDBMemory())
+    mainApp->updateFeeds()->saveMemoryDatabase();
+
   isMinimizeToTray_ = false;
 }
 

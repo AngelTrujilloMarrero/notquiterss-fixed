@@ -93,6 +93,7 @@ UpdateFeeds::UpdateFeeds(QObject *parent, bool addFeed)
   , getFaviconThread_(NULL)
   , addFeed_(addFeed)
   , saveMemoryDBTimer_(NULL)
+  , dirtySaveTimer_(NULL)
 {
   getFeedThread_ = new QThread();
   getFeedThread_->setObjectName("getFeedThread_");
@@ -242,6 +243,10 @@ UpdateFeeds::UpdateFeeds(QObject *parent, bool addFeed)
             updateObject_, SLOT(quitApp()));
     connect(this, SIGNAL(signalSaveMemoryDatabase()),
             updateObject_, SLOT(saveMemoryDatabase()));
+    connect(updateObject_, SIGNAL(signalReadStateChanged()),
+            this, SLOT(requestQuickSave()), Qt::QueuedConnection);
+    connect(navigationState, SIGNAL(signalReadStateChanged()),
+            this, SLOT(requestQuickSave()));
 
     faviconObject_->moveToThread(getFaviconThread_);
 
@@ -315,6 +320,27 @@ void UpdateFeeds::saveMemoryDatabase()
   if (updateObject_->isSaveMemoryDatabase) return;
 
   emit signalSaveMemoryDatabase();
+}
+
+void UpdateFeeds::requestQuickSave()
+{
+  if (addFeed_) return;
+  if (!mainApp->storeDBMemory()) return;
+  if (!updateObject_) return;
+
+  if (!dirtySaveTimer_) {
+    dirtySaveTimer_ = new QTimer(this);
+    dirtySaveTimer_->setSingleShot(true);
+    connect(dirtySaveTimer_, SIGNAL(timeout()), this, SLOT(flushDirtySave()));
+  }
+  // Coalesce bursts of read/star/filter writes: persist at most ~10s later.
+  // The periodic timer and the shutdown save remain the safety nets.
+  dirtySaveTimer_->start(10000);
+}
+
+void UpdateFeeds::flushDirtySave()
+{
+  saveMemoryDatabase();
 }
 
 //------------------------------------------------------------------------------
@@ -740,6 +766,8 @@ void UpdateObject::slotMarkFeedRead(int id, bool isFolder, bool openFeed)
 
   if (!openFeed || isFolder)
     slotUpdateStatus(id, true);
+
+  emit signalReadStateChanged();
 }
 
 /** @brief Update status of current feed or feed of current tab
@@ -800,6 +828,7 @@ void UpdateObject::slotMarkAllFeedsRead()
   slotRefreshInfoTray();
 
   emit signalMarkAllFeedsRead();
+  emit signalReadStateChanged();
 }
 
 void UpdateObject::slotMarkReadCategory(int type, int idLabel)
@@ -835,6 +864,7 @@ void UpdateObject::slotMarkReadCategory(int type, int idLabel)
   foreach (int id, idList) {
     slotUpdateStatus(id, true);
   }
+  emit signalReadStateChanged();
 }
 
 /** @brief Save icon in DB and emit signal to update it
@@ -865,7 +895,9 @@ void UpdateObject::slotSqlQueryExec(QString query)
   if (!q.exec(query)) {
     qCritical() << __PRETTY_FUNCTION__ << __LINE__
                 << "q.lastError(): " << q.lastError().text();
+    return;
   }
+  emit signalReadStateChanged();
 }
 
 /** @brief Mark all feeds Not New
@@ -886,6 +918,7 @@ void UpdateObject::slotMarkAllFeedsOld()
   }
 
   slotRefreshInfoTray();
+  emit signalReadStateChanged();
 }
 
 void UpdateObject::saveMemoryDatabase()

@@ -30,6 +30,7 @@ signals:
   void signalFeedsViewportUpdate();
   void signalRefreshInfoTray(int newCount, int unreadCount);
   void signalSetFeedsFilter(bool clicked = false);
+  void signalReadStateChanged();
 
 protected:
   QString getIdFeedsString(int idFolder, int idException = -1);

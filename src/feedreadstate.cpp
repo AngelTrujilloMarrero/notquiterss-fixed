@@ -364,6 +364,7 @@ void FeedReadState::slotSetFeedRead(int readType, int feedId, int idException, Q
       slotRecountFeedCounts(feedId, false);
   }
 
+  emit signalReadStateChanged();
   emit signalSetFeedsFilter();
 }
 

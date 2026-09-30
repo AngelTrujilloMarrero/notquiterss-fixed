@@ -54,6 +54,10 @@ public:
 
 public slots:
   void saveMemoryDatabase();
+  void requestQuickSave();
+
+private slots:
+  void flushDirtySave();
 
 signals:
   void signalSaveMemoryDatabase();
@@ -61,6 +65,7 @@ signals:
 private:
   bool addFeed_;
   QTimer *saveMemoryDBTimer_;
+  QTimer *dirtySaveTimer_;
 
 };
 
